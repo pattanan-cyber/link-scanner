@@ -3,9 +3,11 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-import urllib
+import urllib.request
 import sys
 import urllib.error
+import ssl
+
 
 
 def get_links(url: str) -> list:
@@ -14,6 +16,7 @@ def get_links(url: str) -> list:
         a list of all unique hyperlinks on the page,
         without page fragments or query parameters.
     """
+    browser: WebDriver = webdriver.Chrome('/Users/pattananprarom/Downloads/chromedriver')
     browser.get(url)
     all_link = browser.find_elements('tag name', 'a')
     all = []
@@ -23,9 +26,10 @@ def get_links(url: str) -> list:
             continue
         if '#' in url:
             url = url.split('#')[0]
-        elif '?' in url:
+        if '?' in url:
             url = url.split('?')[0]
         all.append(url)
+    all = list(dict.fromkeys(all))
     return all
 
 
@@ -36,6 +40,7 @@ def is_valid_url(url: str) -> bool:
         True if the URL is OK, False otherwise.
     """
     try:
+        urllib.request.Request(url, method="HEAD")
         urllib.request.urlopen(url)
         return True
     except urllib.error.HTTPError:
@@ -58,16 +63,19 @@ def invalid_urls(urllist: List[str]) -> List[str]:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 1:
-        print("Usage:  python3 link_scan.py url")
-        sys.exit(0)
-
-    browser: WebDriver = webdriver.Chrome('/Users/pattananprarom/Downloads/chromedriver')
+    import sys
+    import os
+    ssl._create_default_https_context = ssl._create_unverified_context
+    filename = os.path.basename(sys.argv[0])
+    num_args = len(sys.argv)
+    if num_args != 2:
+        print(f"Usage:  python3 Usage:  python3 link_scan.py url.")
+        sys.exit()
     url = sys.argv[1]
-    link_list = get_links(url)
-    for i in link_list:
-        print(i)
 
-    print('Bad Links:')
-    for i in invalid_urls(link_list):
-        print(i)
+    url_list = get_links(url)
+    for url in url_list:
+        print(url)
+    print("\nBad Links:")
+    for url in invalid_urls(url_list):
+        print(url)
